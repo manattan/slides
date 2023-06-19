@@ -1,0 +1,35 @@
+/* @theme main */
+
+section {
+  /* フォント指定 */
+  font-family: "Noto+Sans+JP", Arial;
+  color: #222222;
+  font-weight: normal;
+}
+
+section.top {
+  display: flex;
+  align-items: center;
+}
+
+section.top__name {
+  margin-top: 24px;
+}
+
+section.main {
+  padding: 72px;
+  font-size: 32px;
+}
+
+section.main h1 {
+  font-size: 48px;
+  border-bottom: 1px solid #d6d6d6;
+}
+
+section.main h2 {
+  font-size: 40px;
+}
+
+section.main li {
+  padding: 0 0 16px;
+}
