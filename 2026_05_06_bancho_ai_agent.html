@@ -18,28 +18,20 @@
 <li>バグチケットをAIで全自動解決する — 生成AIに仕事を引き継ぐための設計と、ぶつかった壁</li>
 </ul>
 <p>manattan</p>
-<h2>背景：AIの活用が進んで、エンジニアの働き方が変わってきた</h2>
-<p>Copilot、Claude Code、Slack AI、Rovo、Gemini、NotebookLM…<br />
-気づけば、開発者でなくてもAIを使える時代になった。</p>
-<p>自分もClaude CodeやCopilotで日常的にコードを書いていて、実装スピードは確実に上がった。</p>
-<p>その結果、エンジニアの動き方も変わってきている：</p>
-<ul>
-<li>案件を並行で動かせるようになった</li>
-<li>実装だけでなく、PdMとの仕様整理や上流の設計にも時間を使うようになった</li>
-</ul>
+<h2>背景：AIで実装が速くなった結果、別の負荷が増えた</h2>
+<p>Copilot、Claude Code、Slack AI、Rovo、Gemini、NotebookLMなど、AIツールの活用が進んでいる。</p>
+<p>自分もClaude CodeやCopilotで日常的にコードを書いていて、実装スピードは確実に上がった。案件を並行で動かせるようになったし、PdMとの仕様整理や上流の設計にも時間を使えるようになった。</p>
 <p>ただ、できることが増えた分だけ、別の負荷も増えている。</p>
-<h3>速くなった結果、起きたこと</h3>
-<p>実装が速くなった分、並行で抱える案件が増えた。</p>
+<h3>増えた負荷の正体</h3>
+<p>並行で抱える案件が増えた結果、割り込みとコンテキストスイッチが常態化している。</p>
 <ul>
 <li>修正中に別のバグ報告が上がる、Slackで問い合わせが飛んでくる</li>
 <li>Jiraを見て、ログを見て、GitHubを見て、エディタに戻って、またSlack…</li>
 <li>Slack AIの要約、Jiraの調査メモ、Copilotの出力、それぞれバラバラに出てくるが、つなげるのは人間</li>
 </ul>
-<p><strong>AIが速く書けるなら、もっと回せるでしょ？</strong> — 自分でもそう思うし、周りからもそう見られる。</p>
 <h3>ボトルネックは「コードを書くこと」の外にある</h3>
-<p>コンテキストスイッチ、割り込み対応、散在する情報の整理。<br />
-<strong>「コードを書く前後」の作業</strong>が、抜け漏れや非効率の原因になっている。</p>
-<p>AIにもっと任せたいなら、「コードを書く」以外の部分も含めて、<strong>AIが動ける環境・実行基盤を整える必要がある</strong>。</p>
+<p>ボトルネックになっているのは、コードを書く前後の作業——情報収集、切り分け、転記、整理。ここが抜け漏れや非効率の原因になっている。</p>
+<p>AIにもっと任せるなら、「コードを書く」以外の部分も含めて、AIが動ける実行基盤を整える必要がある。</p>
 <p>その取り組みのひとつとして、バグ報告の初動対応を自動化するBanchoを作っている。</p>
 <h2>Bancho：バグ初動対応の自動化</h2>
 <h3>目指す状態</h3>
@@ -108,7 +100,7 @@ GitHub Issueを作成 / Jiraにコメントで結果を返す
 <h3>設計方針：AIには「自由に考えさせない」</h3>
 <p>AIに「どのサービスを調べるか」「どの環境を見るか」を自由に判断させると、存在しないものを参照したり、触ってはいけない環境にアクセスしてしまう。</p>
 <p>やったのは、<strong>AIが選べる範囲をあらかじめ定義して、その中から選ばせる</strong>こと。</p>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># サービスカタログ（設定ファイル）の例</span>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># 設定ファイルの例</span>
 <span class="hljs-attr">repositories:</span>
   <span class="hljs-bullet">-</span> <span class="hljs-attr">service:</span> <span class="hljs-string">bancho</span>
     <span class="hljs-attr">repository:</span> <span class="hljs-string">manattan/bancho</span> <span class="hljs-comment"># 調査対象のコード</span>
@@ -118,9 +110,8 @@ GitHub Issueを作成 / Jiraにコメントで結果を返す
         <span class="hljs-attr">grafana_datasource:</span> <span class="hljs-string">loki-qa</span> <span class="hljs-comment"># 見ていいログ</span>
 </code></pre>
 <p>この設定ファイルが「AIに何を見せていいか」の唯一の定義。AIが使えるツールの範囲もここで制限している。</p>
-<h2>「動く」と「業務に使える」の間にあった壁</h2>
-<p>通知の受信、チケットの振り分け、AIによる調査、結果の出力。一通りの流れは実装できた。</p>
-<p>ただ、「動く」と「業務に使える」の間には、思っていたより大きな溝があった。ここから先は、コードでは解決できない問題の話。</p>
+<h2>業務に載せるまでにぶつかった壁</h2>
+<p>通知の受信、チケットの振り分け、AIによる調査、結果の出力。一通りの流れは実装できた。ただし、実環境で使うには技術以外の課題が多かった。</p>
 <h3>壁①：AIに権限を渡すと、設計判断が一気に表面化する</h3>
 <p>人間が手動でやっていたときは暗黙的に済んでいたことが、AIに任せた途端に明示的な設計判断になる。</p>
 <ul>
@@ -129,7 +120,7 @@ GitHub Issueを作成 / Jiraにコメントで結果を返す
 <li><strong>AIの出力を信用できる？</strong> → 調査結果に生ログが混入するリスク。開発・QA環境なら許容できるが、本番環境なら別設計が必要</li>
 <li><strong>どこに書く？</strong> → Slack連携は権限昇格の問題があり、privateチャンネル前提になる</li>
 </ul>
-<p>人間なら無意識にやっている「ここは書かない」「ここは見ない」という判断を、AIには設計として教える必要がある。</p>
+<p>人間が暗黙的にやっていた判断（どこまで見る、どこに書く）を、AIには設計として明示する必要がある。</p>
 <h3>壁②：ツールごとに本番と開発の境界が違う</h3>
 <p>AIが複数のツールを横断して動くとき、ツールごとに環境分離の粒度が違う。人間なら頭の中で「これは開発環境の話」「これは本番環境の話」と切り替えられるが、AIにはその暗黙の境界を設計として定義しないといけない。</p>
 <p>今回のケースでは：</p>
@@ -146,10 +137,9 @@ GitHub Issueを作成 / Jiraにコメントで結果を返す
 <li><strong>新しいツール連携の導入判断は誰がする？</strong> → Rovo MCPを使いたいが、IT戦略チームの許可が必要</li>
 <li><strong>監査やトレーサビリティは？</strong> → AIが何を読み、何を書いたかを追跡できる仕組みが求められる</li>
 </ul>
-<p>エンジニアが「技術的にできる」と思っていることと、組織として「やっていい」の間には、想像以上に距離があった。</p>
-<p><strong>実装コードを書く時間より、この調整の方が何倍も時間がかかった。</strong></p>
+<p>実装コードを書く時間より、この調整の方が何倍も時間がかかった。</p>
 <h2>AIの実行基盤を整えるということ</h2>
-<p>Banchoは「バグ初動対応」という一つの領域の話。でも、見えてきた課題はもっと広い。</p>
+<p>Banchoはバグ初動対応という一領域の話だが、見えてきた課題はもっと広い。</p>
 <ul>
 <li>権限・環境・監査の設計は、どのAI活用でも必ず出てくる</li>
 <li>「技術的にできる」と「組織としてやっていい」のギャップは、活用範囲が広がるほど大きくなる</li>
@@ -158,9 +148,8 @@ GitHub Issueを作成 / Jiraにコメントで結果を返す
 <p>これはSlackボットや社内ツールなど、生成AIに人の仕事を任せる仕組みを作るなら、どこでもぶつかる壁でもある。</p>
 <p>だからこそ、まず安全な範囲で小さく動かし、実績で信頼を積んでから広げていく。</p>
 <h2>まとめ</h2>
-<p>AIがコードを書く時代になって、エンジニアの仕事は「書くこと」から「<strong>AIが動ける状態を作ること</strong>」に移りつつある。</p>
-<p>そのために必要なのは、AIの性能よりも、<strong>権限・環境・組織の設計を含めた実行基盤</strong>。</p>
-<p>これからAIを業務に組み込もうとしている方の参考になれば幸いです。</p>
+<p>エンジニアの仕事は「コードを書くこと」から「AIが動ける状態を作ること」に移りつつある。</p>
+<p>そのために必要なのは、AIの性能よりも、権限・環境・組織の設計を含めた実行基盤。</p>
 </section>
 <script>!function(){"use strict";const t={h1:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"1"},style:"display: block; font-size: 2em; margin-block-start: 0.67em; margin-block-end: 0.67em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h2:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"2"},style:"display: block; font-size: 1.5em; margin-block-start: 0.83em; margin-block-end: 0.83em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h3:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"3"},style:"display: block; font-size: 1.17em; margin-block-start: 1em; margin-block-end: 1em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h4:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"4"},style:"display: block; margin-block-start: 1.33em; margin-block-end: 1.33em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h5:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"5"},style:"display: block; font-size: 0.83em; margin-block-start: 1.67em; margin-block-end: 1.67em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},h6:{proto:()=>HTMLHeadingElement,attrs:{role:"heading","aria-level":"6"},style:"display: block; font-size: 0.67em; margin-block-start: 2.33em; margin-block-end: 2.33em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;"},span:{proto:()=>HTMLSpanElement},pre:{proto:()=>HTMLElement,style:"display: block; font-family: monospace; white-space: pre; margin: 1em 0; --marp-auto-scaling-white-space: pre;"}},e="data-marp-auto-scaling-wrapper",i="data-marp-auto-scaling-svg",n="data-marp-auto-scaling-container";class s extends HTMLElement{constructor(){super(),this.svgPreserveAspectRatio="xMinYMid meet";const t=t=>([e])=>{const{width:i,height:n}=e.contentRect;this[t]={width:i,height:n},this.updateSVGRect()};this.attachShadow({mode:"open"}),this.containerObserver=new ResizeObserver(t("containerSize")),this.wrapperObserver=new ResizeObserver(((...e)=>{t("wrapperSize")(...e),this.flushSvgDisplay()}))}static get observedAttributes(){return["data-downscale-only"]}connectedCallback(){var t,s,o,r,a;this.shadowRoot.innerHTML=`\n<style>\n  svg[${i}] { display: block; width: 100%; height: auto; vertical-align: top; }\n  span[${n}] { display: table; white-space: var(--marp-auto-scaling-white-space, nowrap); width: max-content; }\n</style>\n<div ${e}>\n  <svg part="svg" ${i}>\n    <foreignObject><span ${n}><slot></slot></span></foreignObject>\n  </svg>\n</div>\n    `.split(/\n\s*/).join(""),this.wrapper=null!==(t=this.shadowRoot.querySelector(`div[${e}]`))&&void 0!==t?t:void 0;const l=this.svg;this.svg=null!==(o=null===(s=this.wrapper)||void 0===s?void 0:s.querySelector(`svg[${i}]`))&&void 0!==o?o:void 0,this.svg!==l&&(this.svgComputedStyle=this.svg?window.getComputedStyle(this.svg):void 0),this.container=null!==(a=null===(r=this.svg)||void 0===r?void 0:r.querySelector(`span[${n}]`))&&void 0!==a?a:void 0,this.observe()}disconnectedCallback(){this.svg=void 0,this.svgComputedStyle=void 0,this.wrapper=void 0,this.container=void 0,this.observe()}attributeChangedCallback(){this.observe()}flushSvgDisplay(){const{svg:t}=this;t&&(t.style.display="inline",requestAnimationFrame((()=>{t.style.display=""})))}observe(){this.containerObserver.disconnect(),this.wrapperObserver.disconnect(),this.wrapper&&this.wrapperObserver.observe(this.wrapper),this.container&&this.containerObserver.observe(this.container),this.svgComputedStyle&&this.observeSVGStyle(this.svgComputedStyle)}observeSVGStyle(t){const e=()=>{const i=(()=>{const e=t.getPropertyValue("--preserve-aspect-ratio");if(e)return e.trim();return`x${(({textAlign:t,direction:e})=>{if(t.endsWith("left"))return"Min";if(t.endsWith("right"))return"Max";if("start"===t||"end"===t){let i="rtl"===e;return"end"===t&&(i=!i),i?"Max":"Min"}return"Mid"})(t)}YMid meet`})();i!==this.svgPreserveAspectRatio&&(this.svgPreserveAspectRatio=i,this.updateSVGRect()),t===this.svgComputedStyle&&requestAnimationFrame(e)};e()}updateSVGRect(){var t,e,i,n,s,o,r;let a=Math.ceil(null!==(e=null===(t=this.containerSize)||void 0===t?void 0:t.width)&&void 0!==e?e:0);const l=Math.ceil(null!==(n=null===(i=this.containerSize)||void 0===i?void 0:i.height)&&void 0!==n?n:0);void 0!==this.dataset.downscaleOnly&&(a=Math.max(a,null!==(o=null===(s=this.wrapperSize)||void 0===s?void 0:s.width)&&void 0!==o?o:0));const c=null===(r=this.svg)||void 0===r?void 0:r.querySelector(":scope > foreignObject");if(null==c||c.setAttribute("width",`${a}`),null==c||c.setAttribute("height",`${l}`),this.svg&&(this.svg.setAttribute("viewBox",`0 0 ${a} ${l}`),this.svg.setAttribute("preserveAspectRatio",this.svgPreserveAspectRatio),this.svg.style.height=a<=0||l<=0?"0":""),this.container){const t=this.svgPreserveAspectRatio.toLowerCase();this.container.style.marginLeft=t.startsWith("xmid")||t.startsWith("xmax")?"auto":"0",this.container.style.marginRight=t.startsWith("xmi")?"auto":"0"}}}const o=(t,{attrs:e={},style:i})=>class extends t{constructor(...t){super(...t);for(const[t,i]of Object.entries(e))this.hasAttribute(t)||this.setAttribute(t,i);this.attachShadow({mode:"open"})}static get observedAttributes(){return["data-auto-scaling"]}connectedCallback(){this._update()}attributeChangedCallback(){this._update()}_update(){const t=i?`<style>:host { ${i} }</style>`:"";let e="<slot></slot>";const{autoScaling:n}=this.dataset;if(void 0!==n){e=`<marp-auto-scaling exportparts="svg:auto-scaling" ${"downscale-only"===n?"data-downscale-only":""}>${e}</marp-auto-scaling>`}this.shadowRoot.innerHTML=t+e}};let r;const a=Symbol();let l;const c="marpitSVGPolyfill:setZoomFactor,",d=Symbol(),g=Symbol();const h=()=>{const t="Apple Computer, Inc."===navigator.vendor,e=t?[u]:[],i={then:e=>(t?(async()=>{if(void 0===l){const t=document.createElement("canvas");t.width=10,t.height=10;const e=t.getContext("2d"),i=new Image(10,10),n=new Promise((t=>{i.addEventListener("load",(()=>t()))}));i.crossOrigin="anonymous",i.src="data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%2210%22%20viewBox%3D%220%200%201%201%22%3E%3CforeignObject%20width%3D%221%22%20height%3D%221%22%20requiredExtensions%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml%22%3E%3Cdiv%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml%22%20style%3D%22width%3A%201px%3B%20height%3A%201px%3B%20background%3A%20red%3B%20position%3A%20relative%22%3E%3C%2Fdiv%3E%3C%2FforeignObject%3E%3C%2Fsvg%3E",await n,e.drawImage(i,0,0),l=e.getImageData(5,5,1,1).data[3]<128}return l})().then((t=>{null==e||e(t?[u]:[])})):null==e||e([]),i)};return Object.assign(e,i)};let p,m;function u(t){const e="object"==typeof t&&t.target||document,i="object"==typeof t?t.zoom:t;window[g]||(Object.defineProperty(window,g,{configurable:!0,value:!0}),document.body.style.zoom=1.0001,document.body.offsetHeight,document.body.style.zoom=1,window.addEventListener("message",(({data:t,origin:e})=>{if(e===window.origin)try{if(t&&"string"==typeof t&&t.startsWith(c)){const[,e]=t.split(","),i=Number.parseFloat(e);Number.isNaN(i)||(m=i)}}catch(t){console.error(t)}})));let n=!1;Array.from(e.querySelectorAll("svg[data-marpit-svg]"),(t=>{var e,s,o,r;t.style.transform||(t.style.transform="translateZ(0)");const a=i||m||t.currentScale||1;p!==a&&(p=a,n=a);const l=t.getBoundingClientRect(),{length:c}=t.children;for(let i=0;i<c;i+=1){const n=t.children[i];if(n.getScreenCTM){const t=n.getScreenCTM();if(t){const i=null!==(s=null===(e=n.x)||void 0===e?void 0:e.baseVal.value)&&void 0!==s?s:0,c=null!==(r=null===(o=n.y)||void 0===o?void 0:o.baseVal.value)&&void 0!==r?r:0,d=n.children.length;for(let e=0;e<d;e+=1){const s=n.children[e];if("SECTION"===s.tagName){const{style:e}=s;e.transformOrigin||(e.transformOrigin=`${-i}px ${-c}px`),e.transform=`scale(${a}) matrix(${t.a}, ${t.b}, ${t.c}, ${t.d}, ${t.e-l.left}, ${t.f-l.top}) translateZ(0.0001px)`;break}}}}}})),!1!==n&&Array.from(e.querySelectorAll("iframe"),(({contentWindow:t})=>{null==t||t.postMessage(`${c}${n}`,"null"===window.origin?"*":window.origin)}))}function v({once:t=!1,target:e=document}={}){const i=function(t=document){if(t[d])return t[d];let e=!0;const i=()=>{e=!1,delete t[d]};Object.defineProperty(t,d,{configurable:!0,value:i});let n=[],s=!1;(async()=>{try{n=await h()}finally{s=!0}})();const o=()=>{for(const e of n)e({target:t});s&&0===n.length||e&&window.requestAnimationFrame(o)};return o(),i}(e);return t?(i(),()=>{}):i}p=1,m=void 0;const b=Symbol(),w=(e=document)=>{if("undefined"==typeof window)throw new Error("Marp Core's browser script is valid only in browser context.");if(((e=document)=>{const i=window[a];i||customElements.define("marp-auto-scaling",s);for(const n of Object.keys(t)){const s=`marp-${n}`,a=t[n].proto();null!=r||(r=!!document.createElement("div",{is:"marp-auto-scaling"}).outerHTML.startsWith("<div is")),r&&a!==HTMLElement?i||customElements.define(s,o(a,{style:t[n].style}),{extends:n}):(i||customElements.define(s,o(HTMLElement,t[n])),e.querySelectorAll(`${n}[is="${s}"]`).forEach((t=>{t.outerHTML=t.outerHTML.replace(new RegExp(`^<${n}`,"i"),`<${s}`).replace(new RegExp(`</${n}>$`,"i"),`</${s}>`)})))}window[a]=!0})(e),e[b])return e[b];const i=v({target:e}),n=()=>{i(),delete e[b]},l=Object.assign(n,{cleanup:n,update:()=>w(e)});return Object.defineProperty(e,b,{configurable:!0,value:l}),l},y=document.currentScript;w(y?y.getRootNode():document)}();
 </script></foreignObject></svg></div><script>/*!! License: https://unpkg.com/@marp-team/marp-cli@2.4.0/lib/bespoke.js.LICENSE.txt */
